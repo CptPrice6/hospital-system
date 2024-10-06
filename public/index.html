@@ -8,8 +8,48 @@
   </head>
   <body>
     <h1>Welcome to the Hospital Management System</h1>
-    <p>This is a simple frontend served by the Node.js backend.</p>
-    <button id="helloBtn">Say Hello</button>
+
+    <!-- Registration Form -->
+    <h2>Patient Registration</h2>
+    <form id="registerForm">
+      <label for="name">Name:</label>
+      <input type="text" id="name" name="name" required /><br />
+
+      <label for="email">Email:</label>
+      <input type="email" id="registerEmail" name="email" required /><br />
+
+      <label for="password">Password:</label>
+      <input
+        type="password"
+        id="registerPassword"
+        name="password"
+        required
+      /><br />
+
+      <button type="submit">Register</button>
+    </form>
+
+    <div id="registerResponse"></div>
+
+    <!-- Login Form -->
+    <h2>Patient Login</h2>
+    <form id="loginForm">
+      <label for="email">Email:</label>
+      <input type="email" id="loginEmail" name="email" required /><br />
+
+      <label for="password">Password:</label>
+      <input
+        type="password"
+        id="loginPassword"
+        name="password"
+        required
+      /><br />
+
+      <button type="submit">Login</button>
+    </form>
+
+    <div id="loginResponse"></div>
+
     <script src="/app.js"></script>
   </body>
 </html>
