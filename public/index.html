@@ -3,53 +3,170 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Hospital System</title>
-    <link rel="stylesheet" href="/style.css" />
+    <title>
+      Hospital Management System - Patient and Doctor Registration and Login
+    </title>
+    <style>
+      /* Basic Reset */
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: Arial, sans-serif;
+        background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        color: #333;
+      }
+
+      #app {
+        background: #fff;
+        padding: 40px 20px;
+        border-radius: 8px;
+        box-shadow: 0px 4px 20px rgba(0, 0, 0, 0.1);
+        width: 100%;
+        max-width: 400px;
+      }
+
+      h1 {
+        font-size: 24px;
+        margin-bottom: 20px;
+        color: #333;
+        text-align: center;
+      }
+
+      h2 {
+        font-size: 22px;
+        color: #6a11cb;
+        margin-bottom: 15px;
+        text-align: center;
+      }
+
+      form {
+        margin-bottom: 30px;
+      }
+
+      input[type="text"],
+      input[type="email"],
+      input[type="password"] {
+        width: 100%;
+        padding: 10px;
+        margin: 10px 0;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 16px;
+        color: #333;
+      }
+
+      button {
+        width: 100%;
+        padding: 12px;
+        font-size: 16px;
+        background-color: #6a11cb;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: background-color 0.3s ease;
+      }
+
+      button:hover {
+        background-color: #5a0db1;
+      }
+
+      /* Additional Styling */
+      #app h1 {
+        color: #6a11cb;
+      }
+
+      form {
+        border-top: 1px solid #eee;
+        padding-top: 20px;
+      }
+
+      input:focus {
+        outline: none;
+        border-color: #6a11cb;
+        box-shadow: 0 0 8px rgba(106, 17, 203, 0.2);
+      }
+    </style>
   </head>
   <body>
-    <h1>Welcome to the Hospital Management System</h1>
+    <div id="app">
+      <h2>Hospital Management System</h2>
 
-    <!-- Registration Form -->
-    <h2>Patient Registration</h2>
-    <form id="registerForm">
-      <label for="name">Name:</label>
-      <input type="text" id="name" name="name" required /><br />
+      <h1>Patient Registration</h1>
+      <form id="patient-registration-form">
+        <input type="text" id="patient-name" placeholder="Name" required />
+        <input type="email" id="patient-email" placeholder="Email" required />
+        <input
+          type="password"
+          id="patient-password"
+          placeholder="Password"
+          required
+        />
+        <button type="submit">Register</button>
+      </form>
 
-      <label for="email">Email:</label>
-      <input type="email" id="registerEmail" name="email" required /><br />
+      <h1>Patient Login</h1>
+      <form id="patient-login-form">
+        <input
+          type="email"
+          id="patient-login-email"
+          placeholder="Email"
+          required
+        />
+        <input
+          type="password"
+          id="patient-login-password"
+          placeholder="Password"
+          required
+        />
+        <button type="submit">Login</button>
+      </form>
 
-      <label for="password">Password:</label>
-      <input
-        type="password"
-        id="registerPassword"
-        name="password"
-        required
-      /><br />
+      <h1>Doctor Registration</h1>
+      <form id="doctor-registration-form">
+        <input type="text" id="doctor-name" placeholder="Name" required />
+        <input type="email" id="doctor-email" placeholder="Email" required />
+        <input
+          type="password"
+          id="doctor-password"
+          placeholder="Password"
+          required
+        />
+        <input
+          type="text"
+          id="doctor-specialty"
+          placeholder="Specialty"
+          required
+        />
+        <button type="submit">Register</button>
+      </form>
 
-      <button type="submit">Register</button>
-    </form>
+      <h1>Doctor Login</h1>
+      <form id="doctor-login-form">
+        <input
+          type="email"
+          id="doctor-login-email"
+          placeholder="Email"
+          required
+        />
+        <input
+          type="password"
+          id="doctor-login-password"
+          placeholder="Password"
+          required
+        />
+        <button type="submit">Login</button>
+      </form>
+    </div>
 
-    <div id="registerResponse"></div>
-
-    <!-- Login Form -->
-    <h2>Patient Login</h2>
-    <form id="loginForm">
-      <label for="email">Email:</label>
-      <input type="email" id="loginEmail" name="email" required /><br />
-
-      <label for="password">Password:</label>
-      <input
-        type="password"
-        id="loginPassword"
-        name="password"
-        required
-      /><br />
-
-      <button type="submit">Login</button>
-    </form>
-
-    <div id="loginResponse"></div>
-
-    <script src="/app.js"></script>
+    <script src="app.js"></script>
   </body>
 </html>

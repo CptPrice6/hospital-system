@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Your Patient Card</title>
+    <style>
+      /* Global Styles */
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        font-family: Arial, sans-serif;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        background: linear-gradient(135deg, #83a4d4, #b6fbff);
+        color: #333;
+      }
+
+      #patient-card {
+        background: #fff;
+        padding: 30px;
+        border-radius: 15px;
+        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+        width: 100%;
+        max-width: 450px;
+        text-align: center;
+      }
+
+      h1 {
+        font-size: 28px;
+        color: #0077b6;
+        margin-bottom: 15px;
+      }
+
+      h2 {
+        font-size: 22px;
+        color: #555;
+        margin-top: 25px;
+        border-top: 2px solid #0077b6;
+        padding-top: 10px;
+      }
+
+      #patient-info p {
+        font-size: 16px;
+        color: #666;
+        margin: 8px 0;
+      }
+
+      /* Filter Inputs */
+      #filter-container {
+        margin-bottom: 15px;
+      }
+
+      input {
+        width: 100%;
+        max-width: 300px;
+        padding: 10px;
+        margin: 8px 0;
+        border-radius: 5px;
+        border: 1px solid #ccc;
+      }
+
+      /* Doctor List & Appointments */
+      #doctors-list {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        margin-top: 10px;
+      }
+
+      .doctor {
+        background: #f1f8ff;
+        border: 1px solid #d0e8ff;
+        border-radius: 10px;
+        padding: 15px;
+        margin: 8px 0;
+        width: 100%;
+        max-width: 300px;
+        transition: transform 0.3s ease;
+      }
+
+      .doctor:hover {
+        transform: scale(1.02);
+      }
+
+      .doctor p {
+        font-size: 15px;
+        color: #333;
+      }
+
+      /* Appointment Form */
+      #appointment-form {
+        margin-top: 20px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+
+      label {
+        font-size: 14px;
+        color: #555;
+        margin-top: 10px;
+      }
+
+      select,
+      input[type="date"],
+      button {
+        width: 100%;
+        max-width: 300px;
+        padding: 10px;
+        margin-top: 8px;
+        border-radius: 5px;
+        border: 1px solid #ccc;
+        font-size: 14px;
+      }
+
+      button {
+        background-color: #0077b6;
+        color: #fff;
+        border: none;
+        font-size: 16px;
+        margin-top: 15px;
+        cursor: pointer;
+        transition: background 0.3s;
+      }
+
+      button:hover {
+        background-color: #005f8a;
+      }
+
+      /* Appointment Message */
+      #appointment-message {
+        margin-top: 15px;
+        font-size: 14px;
+        color: green;
+      }
+
+      /* Error Message */
+      #error-message {
+        color: red;
+        font-size: 14px;
+        margin-top: 10px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="patient-card">
+      <h1>Your Patient Card</h1>
+      <div id="patient-info"></div>
+      <div id="error-message"></div>
+
+      <h2>Available Doctors</h2>
+      <div id="filter-container">
+        <input type="text" id="name-filter" placeholder="Filter by name" />
+        <input
+          type="text"
+          id="specialty-filter"
+          placeholder="Filter by specialty"
+        />
+      </div>
+      <div id="doctors-list"></div>
+
+      <h2>Book an Appointment</h2>
+      <form id="appointment-form">
+        <label for="doctor-select">Select a Doctor:</label>
+        <select id="doctor-select" required></select>
+        <label for="appointment-date">Choose a Date:</label>
+        <input type="date" id="appointment-date" required />
+        <button type="submit">Book Appointment</button>
+      </form>
+      <div id="appointment-message"></div>
+    </div>
+
+    <script>
+      document.addEventListener("DOMContentLoaded", async () => {
+        const params = new URLSearchParams(window.location.search);
+        const patientId = params.get("patientId");
+
+        if (!patientId) {
+          const errorMessageDiv = document.getElementById("error-message");
+          errorMessageDiv.innerText = "Patient ID is missing";
+          return;
+        }
+
+        try {
+          // Fetch patient data
+          const response = await fetch(`/api/patients/${patientId}/card`);
+          if (!response.ok) {
+            throw new Error("Failed to load patient data");
+          }
+          const data = await response.json();
+
+          // Display patient info
+          const patientInfoDiv = document.getElementById("patient-info");
+          patientInfoDiv.innerHTML = `
+                  <p><strong>Name:</strong> ${data.patient.name}</p>
+                  <p><strong>Email:</strong> ${data.patient.email}</p>
+              `;
+
+          // Fetch doctors
+          const doctorsResponse = await fetch("/api/doctors");
+          if (!doctorsResponse.ok) {
+            throw new Error("Failed to load doctors");
+          }
+          const doctorsData = await doctorsResponse.json();
+          const doctorsListDiv = document.getElementById("doctors-list");
+          const doctorSelect = document.getElementById("doctor-select");
+
+          // Check if doctors are available
+          if (doctorsData.doctors.length === 0) {
+            doctorsListDiv.innerHTML = "<p>No doctors available.</p>";
+          } else {
+            // Store all doctors for filtering
+            const allDoctors = doctorsData.doctors;
+
+            allDoctors.forEach((doctor) => {
+              // Add to dropdown
+              const option = document.createElement("option");
+              option.value = doctor.id;
+              option.textContent = `${doctor.name} (${doctor.specialty})`;
+              doctorSelect.appendChild(option);
+
+              // Display doctors in the list
+              const doctorDiv = document.createElement("div");
+              doctorDiv.classList.add("doctor");
+              doctorDiv.innerHTML = `<p><strong>${doctor.name}</strong> (${doctor.specialty})</p>`;
+              doctorsListDiv.appendChild(doctorDiv);
+            });
+
+            // Filter logic
+            const nameFilter = document.getElementById("name-filter");
+            const specialtyFilter = document.getElementById("specialty-filter");
+
+            function filterDoctors() {
+              const nameValue = nameFilter.value.toLowerCase();
+              const specialtyValue = specialtyFilter.value.toLowerCase();
+
+              // Clear previous list
+              doctorsListDiv.innerHTML = "";
+
+              // Filter and display doctors
+              allDoctors.forEach((doctor) => {
+                const nameMatch = doctor.name.toLowerCase().includes(nameValue);
+                const specialtyMatch = doctor.specialty
+                  .toLowerCase()
+                  .includes(specialtyValue);
+
+                if (nameMatch && specialtyMatch) {
+                  const doctorDiv = document.createElement("div");
+                  doctorDiv.classList.add("doctor");
+                  doctorDiv.innerHTML = `<p><strong>${doctor.name}</strong> (${doctor.specialty})</p>`;
+                  doctorsListDiv.appendChild(doctorDiv);
+                }
+              });
+
+              if (doctorsListDiv.innerHTML === "") {
+                doctorsListDiv.innerHTML =
+                  "<p>No doctors match the criteria.</p>";
+              }
+            }
+
+            // Add event listeners for the filters
+            nameFilter.addEventListener("input", filterDoctors);
+            specialtyFilter.addEventListener("input", filterDoctors);
+          }
+
+          // Handle appointment form submission
+          document
+            .getElementById("appointment-form")
+            .addEventListener("submit", async (e) => {
+              e.preventDefault();
+
+              const doctorId = doctorSelect.value;
+              const appointmentDate =
+                document.getElementById("appointment-date").value;
+
+              try {
+                const appointmentResponse = await fetch(
+                  `/api/appointments/book`,
+                  {
+                    method: "POST",
+                    headers: {
+                      "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                      patientId,
+                      doctorId,
+                      appointmentDate,
+                    }),
+                  }
+                );
+
+                if (!appointmentResponse.ok) {
+                  const appointmentData = await appointmentResponse.json();
+                  throw new Error(appointmentData.message);
+                }
+
+                const appointmentData = await appointmentResponse.json();
+                document.getElementById("appointment-message").innerText =
+                  appointmentData.message;
+              } catch (error) {
+                document.getElementById("appointment-message").innerText =
+                  error.message;
+              }
+            });
+        } catch (error) {
+          const errorMessageDiv = document.getElementById("error-message");
+          errorMessageDiv.innerText = error.message;
+          console.error("Error:", error);
+        }
+      });
+    </script>
+  </body>
+</html>

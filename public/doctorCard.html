@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Your Doctor Card</title>
+    <style>
+      /* Reset and Basic Styling */
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: Arial, sans-serif;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+        color: #333;
+      }
+
+      #doctor-card {
+        background: #fff;
+        width: 100%;
+        max-width: 400px;
+        padding: 30px;
+        border-radius: 10px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        text-align: center;
+      }
+
+      h1 {
+        font-size: 24px;
+        color: #6a11cb;
+        margin-bottom: 20px;
+      }
+
+      h2 {
+        font-size: 20px;
+        margin-top: 30px;
+        color: #333;
+      }
+
+      #doctor-info p {
+        font-size: 16px;
+        margin: 8px 0;
+        color: #555;
+      }
+
+      /* Appointments Section */
+      #appointments {
+        margin-top: 20px;
+        padding-top: 10px;
+        border-top: 1px solid #eee;
+      }
+
+      .appointment {
+        background: #f9f9f9;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        padding: 12px;
+        margin-top: 15px;
+        color: #333;
+        text-align: left;
+      }
+
+      .appointment p {
+        margin: 5px 0;
+        font-size: 14px;
+      }
+
+      /* Error Message */
+      #error-message {
+        color: red;
+        font-size: 14px;
+        margin-top: 10px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="doctor-card">
+      <h1>Your Doctor Card</h1>
+      <div id="doctor-info"></div>
+      <div id="error-message"></div>
+
+      <h2>Appointments</h2>
+      <div id="appointments"></div>
+    </div>
+
+    <script>
+      document.addEventListener("DOMContentLoaded", async () => {
+        const params = new URLSearchParams(window.location.search);
+        const doctorId = params.get("doctorId");
+
+        if (!doctorId) {
+          const errorMessageDiv = document.getElementById("error-message");
+          errorMessageDiv.innerText = "Doctor ID is missing";
+          return;
+        }
+
+        try {
+          // Fetch doctor data
+          const response = await fetch(`/api/doctors/${doctorId}/card`);
+          if (!response.ok) {
+            throw new Error("Failed to load doctor data");
+          }
+          const data = await response.json();
+
+          // Display doctor info
+          const doctorInfoDiv = document.getElementById("doctor-info");
+          doctorInfoDiv.innerHTML = `
+                    <p><strong>Name:</strong> ${data.doctor.name}</p>
+                    <p><strong>Email:</strong> ${data.doctor.email}</p>
+                    <p><strong>Specialty:</strong> ${data.doctor.specialty}</p>
+                `;
+
+          // Fetch appointments
+          const appointmentsResponse = await fetch(
+            `/api/doctors/${doctorId}/appointments`
+          );
+          if (!appointmentsResponse.ok) {
+            throw new Error("Failed to load appointments");
+          }
+          const appointmentsData = await appointmentsResponse.json();
+
+          const appointmentsDiv = document.getElementById("appointments");
+
+          // Check if appointmentsData.appointments is an array and has elements
+          if (
+            Array.isArray(appointmentsData.appointments) &&
+            appointmentsData.appointments.length > 0
+          ) {
+            appointmentsData.appointments.forEach((appointment) => {
+              const appointmentDiv = document.createElement("div");
+              appointmentDiv.classList.add("appointment");
+              appointmentDiv.innerHTML = `
+                        <p><strong>Patient ID:</strong> ${
+                          appointment.patientid
+                        }</p>
+                        <p><strong>Date:</strong> ${new Date(
+                          appointment.date
+                        ).toLocaleDateString()}</p>
+                    `;
+              appointmentsDiv.appendChild(appointmentDiv);
+            });
+          } else {
+            appointmentsDiv.innerHTML = "<p>No appointments found.</p>";
+          }
+        } catch (error) {
+          const errorMessageDiv = document.getElementById("error-message");
+          errorMessageDiv.innerText = error.message;
+          console.error("Error:", error);
+        }
+      });
+    </script>
+  </body>
+</html>
