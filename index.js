@@ -16,13 +16,16 @@ const pool = new Pool({
   port: process.env.DATABASE_PORT || 5432,
 });
 
-// Register a new patient
 app.post(
   "/api/patients/register",
   [
-    body("name").notEmpty(),
-    body("email").isEmail(),
-    body("password").isLength({ min: 6 }),
+    body("name").notEmpty().withMessage("Name is required."),
+    body("email")
+      .isEmail()
+      .withMessage("Please provide a valid email address."),
+    body("password")
+      .isLength({ min: 6 })
+      .withMessage("Password must be at least 6 characters long."),
   ],
   async (req, res) => {
     const errors = validationResult(req);
@@ -32,16 +35,29 @@ app.post(
     const { name, email, password } = req.body;
 
     try {
+      // Check if email already exists
+      const emailExists = await pool.query(
+        "SELECT * FROM patients WHERE email = $1",
+        [email]
+      );
+
+      if (emailExists.rows.length > 0) {
+        return res.status(400).json({ message: "Email is already registered" });
+      }
+
+      // Hash password and insert new patient
       const hashedPassword = await bcrypt.hash(password, 10);
       const newPatient = await pool.query(
         "INSERT INTO patients (name, email, password) VALUES ($1, $2, $3) RETURNING *",
         [name, email, hashedPassword]
       );
+
       res.status(201).json({
         message: "Patient registered successfully",
         patient: newPatient.rows[0],
       });
     } catch (err) {
+      console.error(err.message);
       res.status(500).send("Server error");
     }
   }
@@ -132,10 +148,14 @@ app.post("/api/appointments/book", async (req, res) => {
 app.post(
   "/api/doctors/register",
   [
-    body("name").notEmpty(),
-    body("email").isEmail(),
-    body("password").isLength({ min: 6 }),
-    body("specialty").notEmpty(),
+    body("name").notEmpty().withMessage("Name is required."),
+    body("email")
+      .isEmail()
+      .withMessage("Please provide a valid email address."),
+    body("password")
+      .isLength({ min: 6 })
+      .withMessage("Password must be at least 6 characters long."),
+    body("specialty").notEmpty().withMessage("Specialty is required."),
   ],
   async (req, res) => {
     const errors = validationResult(req);
@@ -145,11 +165,23 @@ app.post(
     const { name, email, password, specialty } = req.body;
 
     try {
+      // Check if email already exists in doctors table
+      const emailExists = await pool.query(
+        "SELECT * FROM doctors WHERE email = $1",
+        [email]
+      );
+
+      if (emailExists.rows.length > 0) {
+        return res.status(400).json({ message: "Email is already registered" });
+      }
+
+      // Hash password and insert new doctor
       const hashedPassword = await bcrypt.hash(password, 10);
       const newDoctor = await pool.query(
         "INSERT INTO doctors (name, email, password, specialty) VALUES ($1, $2, $3, $4) RETURNING *",
         [name, email, hashedPassword, specialty]
       );
+
       res.status(201).json({
         message: "Doctor registered successfully",
         doctor: newDoctor.rows[0],

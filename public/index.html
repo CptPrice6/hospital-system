@@ -3,11 +3,9 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>
-      Hospital Management System - Patient and Doctor Registration and Login
-    </title>
+    <title>Hospital Management System</title>
     <style>
-      /* Basic Reset */
+      /* Reset */
       * {
         margin: 0;
         padding: 0;
@@ -31,24 +29,40 @@
         box-shadow: 0px 4px 20px rgba(0, 0, 0, 0.1);
         width: 100%;
         max-width: 400px;
-      }
-
-      h1 {
-        font-size: 24px;
-        margin-bottom: 20px;
-        color: #333;
         text-align: center;
       }
 
       h2 {
-        font-size: 22px;
+        font-size: 24px;
+        margin-bottom: 20px;
         color: #6a11cb;
-        margin-bottom: 15px;
-        text-align: center;
+      }
+
+      .button-group {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 20px;
+      }
+
+      button {
+        padding: 10px 20px;
+        font-size: 16px;
+        background-color: #6a11cb;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: background-color 0.3s ease;
+        width: 48%;
+      }
+
+      button:hover {
+        background-color: #5a0db1;
       }
 
       form {
-        margin-bottom: 30px;
+        display: none;
+        margin-top: 20px;
       }
 
       input[type="text"],
@@ -60,48 +74,26 @@
         border: 1px solid #ddd;
         border-radius: 4px;
         font-size: 16px;
-        color: #333;
       }
 
-      button {
-        width: 100%;
-        padding: 12px;
-        font-size: 16px;
-        background-color: #6a11cb;
-        color: white;
-        border: none;
-        border-radius: 4px;
-        cursor: pointer;
-        transition: background-color 0.3s ease;
-      }
-
-      button:hover {
-        background-color: #5a0db1;
-      }
-
-      /* Additional Styling */
-      #app h1 {
+      .form-title {
+        font-size: 20px;
         color: #6a11cb;
-      }
-
-      form {
-        border-top: 1px solid #eee;
-        padding-top: 20px;
-      }
-
-      input:focus {
-        outline: none;
-        border-color: #6a11cb;
-        box-shadow: 0 0 8px rgba(106, 17, 203, 0.2);
+        margin-bottom: 15px;
       }
     </style>
   </head>
   <body>
     <div id="app">
       <h2>Hospital Management System</h2>
+      <div class="button-group">
+        <button onclick="showForm('patient')">Patient</button>
+        <button onclick="showForm('doctor')">Doctor</button>
+      </div>
 
-      <h1>Patient Registration</h1>
+      <!-- Patient Registration Form -->
       <form id="patient-registration-form">
+        <p class="form-title">Patient Registration</p>
         <input type="text" id="patient-name" placeholder="Name" required />
         <input type="email" id="patient-email" placeholder="Email" required />
         <input
@@ -110,11 +102,18 @@
           placeholder="Password"
           required
         />
+        <div id="patient-error-container-register"></div>
         <button type="submit">Register</button>
+        <p>
+          <a href="#" onclick="toggleForm('patient', 'login')"
+            >Already registered? Login</a
+          >
+        </p>
       </form>
 
-      <h1>Patient Login</h1>
+      <!-- Patient Login Form -->
       <form id="patient-login-form">
+        <p class="form-title">Patient Login</p>
         <input
           type="email"
           id="patient-login-email"
@@ -128,10 +127,16 @@
           required
         />
         <button type="submit">Login</button>
+        <p>
+          <a href="#" onclick="toggleForm('patient', 'register')"
+            >Need an account? Register</a
+          >
+        </p>
       </form>
 
-      <h1>Doctor Registration</h1>
+      <!-- Doctor Registration Form -->
       <form id="doctor-registration-form">
+        <p class="form-title">Doctor Registration</p>
         <input type="text" id="doctor-name" placeholder="Name" required />
         <input type="email" id="doctor-email" placeholder="Email" required />
         <input
@@ -146,11 +151,19 @@
           placeholder="Specialty"
           required
         />
+        <div id="doctor-error-container-register"></div>
+        <!-- Error container for validation messages -->
         <button type="submit">Register</button>
+        <p>
+          <a href="#" onclick="toggleForm('doctor', 'login')"
+            >Already registered? Login</a
+          >
+        </p>
       </form>
 
-      <h1>Doctor Login</h1>
+      <!-- Doctor Login Form -->
       <form id="doctor-login-form">
+        <p class="form-title">Doctor Login</p>
         <input
           type="email"
           id="doctor-login-email"
@@ -164,9 +177,39 @@
           required
         />
         <button type="submit">Login</button>
+        <p>
+          <a href="#" onclick="toggleForm('doctor', 'register')"
+            >Need an account? Register</a
+          >
+        </p>
       </form>
     </div>
 
     <script src="app.js"></script>
+    <script>
+      function showForm(userType) {
+        // Hide all forms
+        document
+          .querySelectorAll("form")
+          .forEach((form) => (form.style.display = "none"));
+
+        // Show registration form for selected user type
+        document.getElementById(userType + "-registration-form").style.display =
+          "block";
+      }
+
+      function toggleForm(userType, formType) {
+        // Hide both forms of the user type
+        document.getElementById(userType + "-registration-form").style.display =
+          "none";
+        document.getElementById(userType + "-login-form").style.display =
+          "none";
+
+        // Show the selected form type (register or login)
+        document.getElementById(
+          userType + "-" + formType + "-form"
+        ).style.display = "block";
+      }
+    </script>
   </body>
 </html>

@@ -1,8 +1,11 @@
 // Patient Registration
 document
   .getElementById("patient-registration-form")
-  .addEventListener("submit", async (e) => {
-    e.preventDefault();
+  .addEventListener("submit", async (event) => {
+    event.preventDefault();
+
+    // Clear any previous error messages
+    clearPatientErrorMessages();
 
     const name = document.getElementById("patient-name").value;
     const email = document.getElementById("patient-email").value;
@@ -16,10 +19,24 @@ document
         },
         body: JSON.stringify({ name, email, password }),
       });
-      const result = await response.json();
-      alert(result.message);
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        // Handle validation errors and display them on the page
+        if (response.status === 400 && data.errors) {
+          displayPatientErrorMessages(data.errors);
+        } else {
+          alert(data.message || "An error occurred");
+        }
+        return;
+      }
+
+      // If registration is successful, handle success (e.g., redirect or show a success message)
+      alert(data.message);
     } catch (error) {
-      console.error("Error registering patient:", error);
+      console.error("Error:", error);
+      alert("An error occurred. Please try again.");
     }
   });
 
@@ -53,11 +70,14 @@ document
     }
   });
 
-// Doctor Registration
+/// Example for the doctor registration form
 document
   .getElementById("doctor-registration-form")
-  .addEventListener("submit", async (e) => {
-    e.preventDefault();
+  .addEventListener("submit", async (event) => {
+    event.preventDefault();
+
+    // Clear any previous error messages
+    clearDoctorErrorMessages();
 
     const name = document.getElementById("doctor-name").value;
     const email = document.getElementById("doctor-email").value;
@@ -72,12 +92,66 @@ document
         },
         body: JSON.stringify({ name, email, password, specialty }),
       });
-      const result = await response.json();
-      alert(result.message);
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        // Handle validation errors and display them on the page
+        if (response.status === 400 && data.errors) {
+          displayDoctorErrorMessages(data.errors);
+        } else {
+          alert(data.message || "An error occurred");
+        }
+        return;
+      }
+
+      // If registration is successful, handle success (e.g., redirect or show a success message)
+      alert(data.message);
     } catch (error) {
-      console.error("Error registering doctor:", error);
+      console.error("Error:", error);
+      alert("An error occurred. Please try again.");
     }
   });
+
+// Function to display error messages
+function displayPatientErrorMessages(errors) {
+  const errorContainer = document.getElementById(
+    "patient-error-container-register"
+  );
+  errors.forEach((error) => {
+    const errorMessage = document.createElement("p");
+    errorMessage.textContent = error.msg;
+    errorMessage.style.color = "red";
+    errorContainer.appendChild(errorMessage);
+  });
+}
+
+function displayDoctorErrorMessages(errors) {
+  const errorContainer = document.getElementById(
+    "doctor-error-container-register"
+  );
+  errors.forEach((error) => {
+    const errorMessage = document.createElement("p");
+    errorMessage.textContent = error.msg;
+    errorMessage.style.color = "red";
+    errorContainer.appendChild(errorMessage);
+  });
+}
+
+// Function to clear previous error messages
+function clearPatientErrorMessages() {
+  const errorContainer = document.getElementById(
+    "patient-error-container-register"
+  );
+  errorContainer.innerHTML = ""; // Clear previous errors
+}
+
+function clearDoctorErrorMessages() {
+  const errorContainer = document.getElementById(
+    "doctor-error-container-register"
+  );
+  errorContainer.innerHTML = ""; // Clear previous errors
+}
 
 // Doctor Login
 document
