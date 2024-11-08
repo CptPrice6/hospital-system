@@ -16,6 +16,16 @@ const pool = new Pool({
   port: process.env.DATABASE_PORT || 5432,
 });
 
+app.get("/test-db", async (req, res) => {
+  try {
+    const result = await pool.query("SELECT NOW()");
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error("Database connection error:", err);
+    res.status(500).json({ error: "Database connection error" });
+  }
+});
+
 app.post(
   "/api/patients/register",
   [
@@ -264,4 +274,6 @@ app.get("/api/doctors/:doctorId/appointments", async (req, res) => {
 
 // Start the server
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+app.listen(PORT, "0.0.0.0", () =>
+  console.log(`Server running on port ${PORT}`)
+);
