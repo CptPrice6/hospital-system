@@ -32,6 +32,24 @@
         text-align: center;
       }
 
+      button#logout-button {
+        background-color: #ff4757;
+        color: #fff;
+        border: none;
+        padding: 10px 20px;
+        font-size: 16px;
+        border-radius: 5px;
+        cursor: pointer;
+        transition: background-color 0.3s ease;
+        margin-top: 20px;
+        width: 100%;
+        max-width: 300px;
+      }
+
+      button#logout-button:hover {
+        background-color: #e84118;
+      }
+
       h1 {
         font-size: 24px;
         color: #6a11cb;
@@ -88,9 +106,24 @@
 
       <h2>Appointments</h2>
       <div id="appointments"></div>
+      <button id="logout-button">Logout</button>
     </div>
 
     <script>
+      document.addEventListener("DOMContentLoaded", async () => {
+        const logoutButton = document.getElementById("logout-button");
+
+        // Handle logout button click
+        logoutButton.addEventListener("click", () => {
+          // Clear the stored token from localStorage
+          localStorage.removeItem("doctorToken");
+
+          // Optionally, you can also clear any other session-related data here
+
+          // Redirect the user to the login page (or wherever you want)
+          window.location.href = "/"; // Or to any other page like '/home.html'
+        });
+      });
       document.addEventListener("DOMContentLoaded", async () => {
         const params = new URLSearchParams(window.location.search);
         const doctorId = params.get("doctorId");
@@ -101,11 +134,19 @@
           return;
         }
 
+        // Get the JWT token from localStorage
+        const token = localStorage.getItem("doctorToken");
+
         try {
-          // Fetch doctor data
-          const response = await fetch(`/api/doctors/${doctorId}/card`);
+          const response = await fetch(`/api/doctors/${doctorId}/card`, {
+            method: "GET",
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          });
           if (!response.ok) {
-            throw new Error("Failed to load doctor data");
+            const data = await response.json();
+            throw new Error(data.message || "Failed to load patient data");
           }
           const data = await response.json();
 

@@ -1,4 +1,5 @@
 const express = require("express");
+const jwt = require("jsonwebtoken");
 const { Pool } = require("pg");
 const bcrypt = require("bcrypt");
 const { body, validationResult } = require("express-validator");
@@ -15,6 +16,8 @@ const pool = new Pool({
   password: process.env.DATABASE_PASSWORD,
   port: process.env.DATABASE_PORT || 5432,
 });
+
+const jwtSecret = "222";
 
 app.get("/test-db", async (req, res) => {
   try {
@@ -92,9 +95,17 @@ app.post(
       if (!isMatch)
         return res.status(400).json({ message: "Invalid credentials" });
 
+      // Generate a JWT token
+      const token = jwt.sign(
+        { patientId: patient.rows[0].id, email: patient.rows[0].email },
+        jwtSecret,
+        { expiresIn: "1h" }
+      );
+
       res.json({
         message: "Patient logged in",
         patientId: patient.rows[0].id,
+        token,
       });
     } catch (err) {
       res.status(500).send("Server error");
@@ -102,12 +113,53 @@ app.post(
   }
 );
 
+const verifyPatientToken = (req, res, next) => {
+  const token = req.header("Authorization")?.split(" ")[1]; // Assuming the token is passed in the Authorization header
+
+  if (!token) {
+    return res.status(403).json({ message: "Access denied" });
+  }
+
+  try {
+    const decoded = jwt.verify(token, jwtSecret);
+    req.patient = decoded; // Attach patient info to request object
+    next();
+  } catch (err) {
+    res.status(401).json({ message: "Invalid or expired token" });
+  }
+};
+
+const verifyDoctorToken = (req, res, next) => {
+  const token = req.header("Authorization")?.split(" ")[1]; // Assuming the token is passed in the Authorization header
+
+  if (!token) {
+    return res.status(403).json({ message: "Access denied" });
+  }
+
+  try {
+    const decoded = jwt.verify(token, jwtSecret);
+    req.doctor = decoded; // Attach patient info to request object
+    next();
+  } catch (err) {
+    res.status(401).json({ message: "Invalid or expired token" });
+  }
+};
+
 // Patient Card Endpoint
-app.get("/api/patients/:id/card", async (req, res) => {
+app.get("/api/patients/:id/card", verifyPatientToken, async (req, res) => {
+  const { id } = req.params;
+  if (parseInt(id) !== req.patient.patientId) {
+    return res
+      .status(403)
+      .json({ message: "You are not authorized to view this card" });
+  }
   try {
     const patient = await pool.query("SELECT * FROM patients WHERE id = $1", [
-      req.params.id,
+      id,
     ]);
+    if (patient.rows.length === 0) {
+      return res.status(404).json({ message: "Patient not found" });
+    }
     res.json({ patient: patient.rows[0] });
   } catch (err) {
     res.status(500).send("Server error");
@@ -222,8 +274,13 @@ app.post(
       if (!isMatch)
         return res.status(400).json({ message: "Invalid credentials" });
 
+      const token = jwt.sign({ doctorId: doctor.rows[0].id }, jwtSecret, {
+        expiresIn: "1h", // Token expires in 1 hour
+      });
+      // Send the token as a response
       res.json({
         message: "Doctor logged in",
+        token, // Send the token back to the client
         doctorId: doctor.rows[0].id,
       });
     } catch (err) {
@@ -234,13 +291,17 @@ app.post(
 );
 
 // Get Doctor Card Information
-app.get("/api/doctors/:doctorId/card", async (req, res) => {
-  const doctorId = req.params.doctorId;
-
+app.get("/api/doctors/:doctorId/card", verifyDoctorToken, async (req, res) => {
+  const id = req.params.doctorId;
+  if (parseInt(id) !== req.doctor.doctorId) {
+    return res
+      .status(403)
+      .json({ message: "You are not authorized to view this card" });
+  }
   try {
     const doctorQuery = await pool.query(
       "SELECT id, name, email, specialty FROM doctors WHERE id = $1",
-      [doctorId]
+      [id]
     );
 
     if (doctorQuery.rows.length === 0) {
@@ -254,7 +315,6 @@ app.get("/api/doctors/:doctorId/card", async (req, res) => {
   }
 });
 
-// Get Doctor Appointments
 // Get Doctor Appointments
 app.get("/api/doctors/:doctorId/appointments", async (req, res) => {
   const doctorId = req.params.doctorId;

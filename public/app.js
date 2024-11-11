@@ -59,7 +59,9 @@ document
       });
       const result = await response.json();
 
-      if (result.patientId) {
+      if (result.token) {
+        // Save token to localStorage
+        localStorage.setItem("patientToken", result.token);
         // Redirect to the patient's card page
         window.location.href = `/patientCard.html?patientId=${result.patientId}`;
       } else {
@@ -172,8 +174,10 @@ document
       });
       const result = await response.json();
 
-      if (result.doctorId) {
-        // Redirect to the doctor's card page
+      if (result.token) {
+        // Save token to localStorage
+        localStorage.setItem("doctorToken", result.token);
+        // Redirect to the patient's card page
         window.location.href = `/doctorCard.html?doctorId=${result.doctorId}`;
       } else {
         alert(result.message);
