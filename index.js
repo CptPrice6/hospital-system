@@ -181,6 +181,16 @@ app.post("/api/appointments/book", async (req, res) => {
   const { patientId, doctorId, appointmentDate } = req.body;
 
   try {
+    const today = new Date();
+    const selectedDate = new Date(appointmentDate);
+    today.setHours(0, 0, 0, 0);
+
+    if (selectedDate < today) {
+      return res
+        .status(400)
+        .json({ message: "Cannot book an appointment for a past date." });
+    }
+
     // Check if an appointment already exists for this doctor on this date
     const existingAppointment = await pool.query(
       "SELECT * FROM appointments WHERE doctor_id = $1 AND date = $2",
@@ -328,6 +338,59 @@ app.get("/api/doctors/:doctorId/appointments", async (req, res) => {
     res.json({ appointments: appointmentsQuery.rows });
   } catch (err) {
     console.error(err);
+    res.status(500).send("Server error");
+  }
+});
+
+// Endpoint to cancel an appointment
+app.delete("/api/appointments/:appointmentId", async (req, res) => {
+  const { appointmentId } = req.params;
+
+  try {
+    // Delete the appointment from the database
+    const result = await pool.query(
+      "DELETE FROM appointments WHERE id = $1 RETURNING *",
+      [appointmentId]
+    );
+
+    if (result.rowCount === 0) {
+      return res.status(404).json({ message: "Appointment not found." });
+    }
+
+    // Send a success response
+    res.json({ message: "Appointment cancelled successfully." });
+  } catch (err) {
+    console.error("Error deleting appointment:", err);
+    res.status(500).send("Server error");
+  }
+});
+
+app.get("/api/patients/:patientId/appointments", async (req, res) => {
+  const patientId = req.params.patientId;
+
+  try {
+    // Query to fetch the appointments for the given patient and include doctor details (name and specialty)
+    const appointmentsQuery = await pool.query(
+      `SELECT 
+         a.id,
+         a.date, 
+         d.id AS doctorId, 
+         d.name AS doctorName, 
+         d.specialty 
+       FROM appointments a
+       JOIN doctors d ON a.doctor_id = d.id
+       WHERE a.patient_id = $1
+       ORDER BY a.date`,
+      [patientId]
+    );
+
+    // If the patient has appointments, send them in the response
+    const appointments = appointmentsQuery.rows;
+
+    // Respond with the appointments (even if empty) and a 200 status
+    res.json({ appointments });
+  } catch (err) {
+    console.error("Error fetching appointments:", err);
     res.status(500).send("Server error");
   }
 });

@@ -84,6 +84,40 @@
         border: 1px solid #ccc;
       }
 
+      .modal {
+        display: none;
+        position: fixed;
+        z-index: 1;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        overflow: auto;
+        background-color: rgba(0, 0, 0, 0.4);
+      }
+
+      .modal-content {
+        background-color: #fff;
+        margin: 15% auto;
+        padding: 20px;
+        border: 1px solid #888;
+        width: 50%;
+      }
+
+      .close-button {
+        color: #aaa;
+        float: right;
+        font-size: 28px;
+        font-weight: bold;
+      }
+
+      .close-button:hover,
+      .close-button:focus {
+        color: black;
+        text-decoration: none;
+        cursor: pointer;
+      }
+
       /* Doctor List & Appointments */
       #doctors-list {
         display: flex;
@@ -118,6 +152,45 @@
         display: flex;
         flex-direction: column;
         align-items: center;
+      }
+
+      /* Style for the appointments list */
+      #appointments-list {
+        margin-top: 30px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+
+      /* Style for each appointment card */
+      .appointment-card {
+        background: #f1f8ff;
+        border: 1px solid #d0e8ff;
+        border-radius: 10px;
+        padding: 15px;
+        margin: 10px 0;
+        width: 100%;
+        max-width: 400px;
+        text-align: center;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      }
+
+      /* Cancel button styling */
+      button.cancel-appointment {
+        background-color: #6d0007;
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 14px;
+        margin-top: 10px;
+        transition: background-color 0.3s ease;
+      }
+
+      /* Cancel button hover effect */
+      button.cancel-appointment:hover {
+        background-color: #e84118;
       }
 
       label {
@@ -184,19 +257,29 @@
       </div>
       <div id="doctors-list"></div>
 
-      <h2>Book an Appointment</h2>
-      <form id="appointment-form">
-        <label for="doctor-select">Select a Doctor:</label>
-        <select id="doctor-select" required></select>
-        <label for="appointment-date">Choose a Date:</label>
-        <input type="date" id="appointment-date" required />
-        <button type="submit">Book Appointment</button>
-      </form>
       <button id="logout-button">Logout</button>
-      <div id="appointment-message"></div>
+
+      <h2>Your Appointments</h2>
+      <div id="appointments-list"></div>
+    </div>
+
+    <div id="appointment-modal" class="modal">
+      <div class="modal-content">
+        <span class="close-button">&times;</span>
+        <h3>Book Appointment</h3>
+        <form id="modal-appointment-form">
+          <p id="doctor-name"></p>
+          <input type="hidden" id="modal-doctor-id" />
+          <label for="modal-appointment-date">Choose a Date:</label>
+          <input type="date" id="modal-appointment-date" required />
+          <button type="submit">Book Appointment</button>
+        </form>
+        <div id="modal-appointment-message"></div>
+      </div>
     </div>
 
     <script>
+      document.addEventListener("DOMContentLoaded", async () => {});
       document.addEventListener("DOMContentLoaded", async () => {
         const logoutButton = document.getElementById("logout-button");
 
@@ -212,8 +295,161 @@
         });
       });
       document.addEventListener("DOMContentLoaded", async () => {
+        const doctorsListDiv = document.getElementById("doctors-list");
+        const modal = document.getElementById("appointment-modal");
+        const closeModalButton = modal.querySelector(".close-button");
+        const doctorNameSpan = document.getElementById("doctor-name");
+        const doctorIdInput = document.getElementById("modal-doctor-id");
+        const modalForm = document.getElementById("modal-appointment-form");
+        const modalMessage = document.getElementById(
+          "modal-appointment-message"
+        );
         const params = new URLSearchParams(window.location.search);
         const patientId = params.get("patientId");
+
+        const appointmentsListDiv =
+          document.getElementById("appointments-list");
+        async function loadAppointments() {
+          const token = localStorage.getItem("patientToken");
+
+          try {
+            const response = await fetch(
+              `/api/patients/${patientId}/appointments`,
+              {
+                method: "GET",
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                },
+              }
+            );
+            if (!response.ok) {
+              throw new Error("Failed to load appointments");
+            }
+            const data = await response.json();
+            const appointments = data.appointments;
+
+            // Display appointments
+            appointmentsListDiv.innerHTML = ""; // Clear previous appointments
+
+            if (appointments.length === 0) {
+              appointmentsListDiv.innerHTML =
+                "<p>You have no upcoming appointments.</p>";
+            } else {
+              // Display each appointment
+              appointmentsListDiv.innerHTML = ""; // Clear any previous content
+
+              appointments.forEach((appointment) => {
+                const appointmentDiv = document.createElement("div");
+                appointmentDiv.classList.add("appointment-card");
+                appointmentDiv.innerHTML = `
+                <h3>${appointment.doctorname} (${appointment.specialty})</h3>
+                <p><strong>Date:</strong> ${new Date(
+                  appointment.date
+                ).toLocaleDateString()}</p>
+                <button class="cancel-appointment" data-appointment-id="${
+                  appointment.id
+                }">Cancel Appointment</button>
+              `;
+                appointmentsListDiv.appendChild(appointmentDiv);
+              });
+
+              // Add event listener to cancel buttons
+              document
+                .querySelectorAll(".cancel-appointment")
+                .forEach((cancelButton) => {
+                  cancelButton.addEventListener("click", async (e) => {
+                    const appointmentId = e.target.dataset.appointmentId;
+                    await cancelAppointment(appointmentId);
+                  });
+                });
+            }
+          } catch (error) {
+            console.error("Error fetching appointments:", error);
+            appointmentsListDiv.innerHTML = `<p>Error: ${error.message}</p>`;
+          }
+        }
+
+        async function cancelAppointment(appointmentId) {
+          try {
+            const response = await fetch(`/api/appointments/${appointmentId}`, {
+              method: "DELETE",
+            });
+
+            if (response.ok) {
+              alert("Appointment cancelled successfully.");
+              window.location.reload(); // Reload the page to reflect the cancellation
+            } else {
+              const data = await response.json();
+              throw new Error(
+                data.message || "Failed to cancel the appointment."
+              );
+            }
+          } catch (error) {
+            alert(`Error: ${error.message}`);
+          }
+        }
+
+        closeModalButton.addEventListener("click", () => {
+          modal.style.display = "none";
+        });
+
+        window.addEventListener("click", (event) => {
+          if (event.target === modal) {
+            modal.style.display = "none";
+          }
+        });
+
+        function openModal(doctor) {
+          doctorNameSpan.textContent = `Doctor: ${doctor.name} (${doctor.specialty})`;
+          doctorIdInput.value = doctor.id;
+          modal.style.display = "block";
+        }
+
+        doctorsListDiv.addEventListener("click", (event) => {
+          const doctorDiv = event.target.closest(".doctor");
+          if (doctorDiv) {
+            const doctorId = doctorDiv.dataset.doctorId;
+            const doctorName = doctorDiv.dataset.doctorName;
+            const doctorSpecialty = doctorDiv.dataset.doctorSpecialty;
+
+            openModal({
+              id: doctorId,
+              name: doctorName,
+              specialty: doctorSpecialty,
+            });
+          }
+        });
+
+        modalForm.addEventListener("submit", async (e) => {
+          e.preventDefault();
+          const doctorId = doctorIdInput.value;
+          const appointmentDate = document.getElementById(
+            "modal-appointment-date"
+          ).value;
+
+          try {
+            const response = await fetch("/api/appointments/book", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({ doctorId, patientId, appointmentDate }),
+            });
+
+            if (!response.ok) {
+              const data = await response.json();
+              throw new Error(data.message);
+            }
+
+            const data = await response.json();
+            modalMessage.textContent = data.message;
+            modalMessage.style.color = "green";
+            loadAppointments(); // Reload appointments after booking
+          } catch (error) {
+            modalMessage.textContent = error.message;
+            modalMessage.style.color = "red";
+          }
+        });
 
         if (!patientId) {
           const errorMessageDiv = document.getElementById("error-message");
@@ -260,19 +496,37 @@
             // Store all doctors for filtering
             const allDoctors = doctorsData.doctors;
 
-            allDoctors.forEach((doctor) => {
-              // Add to dropdown
-              const option = document.createElement("option");
-              option.value = doctor.id;
-              option.textContent = `${doctor.name} (${doctor.specialty})`;
-              doctorSelect.appendChild(option);
+            // Function to display doctors
+            function displayDoctors(doctorsToDisplay) {
+              // Clear previous doctor list
+              doctorsListDiv.innerHTML = "";
 
-              // Display doctors in the list
-              const doctorDiv = document.createElement("div");
-              doctorDiv.classList.add("doctor");
-              doctorDiv.innerHTML = `<p><strong>${doctor.name}</strong> (${doctor.specialty})</p>`;
-              doctorsListDiv.appendChild(doctorDiv);
-            });
+              // Display doctors
+              doctorsToDisplay.forEach((doctor) => {
+                const doctorDiv = document.createElement("div");
+                doctorDiv.classList.add("doctor");
+                doctorDiv.dataset.doctorId = doctor.id;
+                doctorDiv.dataset.doctorName = doctor.name;
+                doctorDiv.dataset.doctorSpecialty = doctor.specialty;
+                doctorDiv.innerHTML = `<p><strong>${doctor.name}</strong> (${doctor.specialty})</p>`;
+                doctorsListDiv.appendChild(doctorDiv);
+
+                doctorDiv.addEventListener("click", () => {
+                  const appointmentMessageDiv = document.getElementById(
+                    "modal-appointment-message"
+                  );
+                  appointmentMessageDiv.innerHTML = ""; // Clear appointment message
+                });
+              });
+
+              if (doctorsListDiv.innerHTML === "") {
+                doctorsListDiv.innerHTML =
+                  "<p>No doctors match the criteria.</p>";
+              }
+            }
+
+            // Initially display all doctors
+            displayDoctors(allDoctors);
 
             // Filter logic
             const nameFilter = document.getElementById("name-filter");
@@ -282,74 +536,25 @@
               const nameValue = nameFilter.value.toLowerCase();
               const specialtyValue = specialtyFilter.value.toLowerCase();
 
-              // Clear previous list
-              doctorsListDiv.innerHTML = "";
-
-              // Filter and display doctors
-              allDoctors.forEach((doctor) => {
+              // Filter doctors based on the criteria
+              const filteredDoctors = allDoctors.filter((doctor) => {
                 const nameMatch = doctor.name.toLowerCase().includes(nameValue);
                 const specialtyMatch = doctor.specialty
                   .toLowerCase()
                   .includes(specialtyValue);
-
-                if (nameMatch && specialtyMatch) {
-                  const doctorDiv = document.createElement("div");
-                  doctorDiv.classList.add("doctor");
-                  doctorDiv.innerHTML = `<p><strong>${doctor.name}</strong> (${doctor.specialty})</p>`;
-                  doctorsListDiv.appendChild(doctorDiv);
-                }
+                return nameMatch && specialtyMatch;
               });
 
-              if (doctorsListDiv.innerHTML === "") {
-                doctorsListDiv.innerHTML =
-                  "<p>No doctors match the criteria.</p>";
-              }
+              // Display the filtered doctors
+              displayDoctors(filteredDoctors);
             }
 
             // Add event listeners for the filters
             nameFilter.addEventListener("input", filterDoctors);
             specialtyFilter.addEventListener("input", filterDoctors);
           }
-
+          loadAppointments();
           // Handle appointment form submission
-          document
-            .getElementById("appointment-form")
-            .addEventListener("submit", async (e) => {
-              e.preventDefault();
-
-              const doctorId = doctorSelect.value;
-              const appointmentDate =
-                document.getElementById("appointment-date").value;
-
-              try {
-                const appointmentResponse = await fetch(
-                  `/api/appointments/book`,
-                  {
-                    method: "POST",
-                    headers: {
-                      "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify({
-                      patientId,
-                      doctorId,
-                      appointmentDate,
-                    }),
-                  }
-                );
-
-                if (!appointmentResponse.ok) {
-                  const appointmentData = await appointmentResponse.json();
-                  throw new Error(appointmentData.message);
-                }
-
-                const appointmentData = await appointmentResponse.json();
-                document.getElementById("appointment-message").innerText =
-                  appointmentData.message;
-              } catch (error) {
-                document.getElementById("appointment-message").innerText =
-                  error.message;
-              }
-            });
         } catch (error) {
           const errorMessageDiv = document.getElementById("error-message");
           errorMessageDiv.innerText = error.message;
