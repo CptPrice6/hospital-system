@@ -519,7 +519,7 @@
             const normalizedBookedDates = data.appointments.map(
               (appointment) => {
                 const dateObj = new Date(appointment.date);
-                dateObj.setDate(dateObj.getDate() + 1); // Add 1 day to the date
+                dateObj.setDate(dateObj.getDate());
                 return dateObj.toISOString().split("T")[0]; // Normalize to YYYY-MM-DD
               }
             );
@@ -535,6 +535,15 @@
               onDayCreate: function (dObj, dStr, fp, dayElem) {
                 const date = dayElem.dateObj;
                 const dateStr = fp.formatDate(date, "Y-m-d");
+
+                // Skip past dates without adding any styles or classes
+                const today = new Date();
+                today.setHours(0, 0, 0, 0); // Set today to midnight
+
+                // If the current date is in the past, do nothing
+                if (date < today) {
+                  return;
+                }
 
                 // Check if the current date is in the bookedDates array
                 if (normalizedBookedDates.includes(dateStr)) {

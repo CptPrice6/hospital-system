@@ -183,9 +183,19 @@ app.post("/api/appointments/book", async (req, res) => {
   try {
     const today = new Date();
     const selectedDate = new Date(appointmentDate);
+    const utcDate = new Date(
+      Date.UTC(
+        selectedDate.getFullYear(),
+        selectedDate.getMonth(),
+        selectedDate.getDate(),
+        0,
+        0,
+        0
+      )
+    );
     today.setHours(0, 0, 0, 0);
 
-    if (selectedDate < today) {
+    if (utcDate < today) {
       return res
         .status(400)
         .json({ message: "Cannot book an appointment for a past date." });
@@ -194,7 +204,7 @@ app.post("/api/appointments/book", async (req, res) => {
     // Check if an appointment already exists for this doctor on this date
     const existingAppointment = await pool.query(
       "SELECT * FROM appointments WHERE doctor_id = $1 AND date = $2",
-      [doctorId, appointmentDate]
+      [doctorId, utcDate]
     );
 
     if (existingAppointment.rows.length > 0) {
@@ -203,10 +213,10 @@ app.post("/api/appointments/book", async (req, res) => {
         .json({ message: "This doctor is already booked for that date." });
     }
 
-    // Proceed with booking the appointment if no conflict
+    // Insert UTC date into the database
     await pool.query(
       "INSERT INTO appointments (patient_id, doctor_id, date) VALUES ($1, $2, $3)",
-      [patientId, doctorId, appointmentDate]
+      [patientId, doctorId, utcDate]
     );
 
     res.json({ message: "Appointment successfully booked!" });
