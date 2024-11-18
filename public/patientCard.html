@@ -36,6 +36,33 @@
         max-width: 300px;
       }
 
+      /* Style for booked dates */
+      /* Style for booked dates (red background) */
+      .booked-date {
+        background-color: #ffcccc !important; /* Red background for booked dates */
+        color: white !important; /* White text for better readability */
+      }
+
+      /* Style for free dates (green background) */
+      .free-date {
+        background-color: #ccffcc !important; /* Green background for free dates */
+      }
+
+      /* Style for disabled dates (booked dates) */
+      .flatpickr-calendar .flatpickr-day.disabled.booked-date {
+        background-color: #ffcccc !important; /* Ensure booked dates are red */
+        color: white !important; /* White text on disabled dates */
+      }
+
+      /* If date is selected and booked, add a 'booked' class to input */
+      input[type="text"].booked {
+        background-color: #ffcccc; /* Light red background for booked dates */
+      }
+
+      input[type="text"].free {
+        background-color: #ccffcc; /* Light green background for free dates */
+      }
+
       button#logout-button:hover {
         background-color: #e84118;
       }
@@ -238,8 +265,23 @@
         font-size: 14px;
         margin-top: 10px;
       }
+
+      input[type="date"].booked {
+        background-color: #ffcccc;
+      }
+
+      input[type="date"].free {
+        background-color: #ccffcc;
+      }
     </style>
   </head>
+  <!-- Flatpickr CSS -->
+  <link
+    rel="stylesheet"
+    href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css"
+  />
+  <!-- Flatpickr JS -->
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
   <body>
     <div id="patient-card">
       <h1>Your Patient Card</h1>
@@ -271,7 +313,15 @@
           <p id="doctor-name"></p>
           <input type="hidden" id="modal-doctor-id" />
           <label for="modal-appointment-date">Choose a Date:</label>
-          <input type="date" id="modal-appointment-date" required />
+          <input
+            id="modal-appointment-date"
+            type="text"
+            placeholder="Select a date"
+          />
+          <p id="availability-legend">
+            <span style="color: green">Green: Free</span> |
+            <span style="color: red">Red: Booked</span>
+          </p>
           <button type="submit">Book Appointment</button>
         </form>
         <div id="modal-appointment-message"></div>
@@ -279,7 +329,6 @@
     </div>
 
     <script>
-      document.addEventListener("DOMContentLoaded", async () => {});
       document.addEventListener("DOMContentLoaded", async () => {
         const logoutButton = document.getElementById("logout-button");
 
@@ -399,12 +448,6 @@
           }
         });
 
-        function openModal(doctor) {
-          doctorNameSpan.textContent = `Doctor: ${doctor.name} (${doctor.specialty})`;
-          doctorIdInput.value = doctor.id;
-          modal.style.display = "block";
-        }
-
         doctorsListDiv.addEventListener("click", (event) => {
           const doctorDiv = event.target.closest(".doctor");
           if (doctorDiv) {
@@ -428,6 +471,13 @@
           ).value;
 
           try {
+            // Check if the selected date is booked
+            if (normalizedBookedDates.includes(appointmentDate)) {
+              modalMessage.textContent = "This day is already booked.";
+              modalMessage.style.color = "red";
+              return;
+            }
+
             const response = await fetch("/api/appointments/book", {
               method: "POST",
               headers: {
@@ -445,11 +495,87 @@
             modalMessage.textContent = data.message;
             modalMessage.style.color = "green";
             loadAppointments(); // Reload appointments after booking
+            loadAvailability(doctorId); // Refresh availability for updated bookings
           } catch (error) {
             modalMessage.textContent = error.message;
             modalMessage.style.color = "red";
           }
         });
+
+        let normalizedBookedDates = [];
+
+        async function loadAvailability(doctorId) {
+          try {
+            const response = await fetch(
+              `/api/doctors/${doctorId}/appointments`
+            );
+            if (!response.ok) {
+              throw new Error("Failed to load availability data.");
+            }
+
+            const data = await response.json();
+
+            // Normalize the booked dates to just 'YYYY-MM-DD' format
+            const normalizedBookedDates = data.appointments.map(
+              (appointment) => {
+                const dateObj = new Date(appointment.date);
+                dateObj.setDate(dateObj.getDate() + 1); // Add 1 day to the date
+                return dateObj.toISOString().split("T")[0]; // Normalize to YYYY-MM-DD
+              }
+            );
+
+            // Initialize Flatpickr
+            flatpickr("#modal-appointment-date", {
+              minDate: "today", // Disable past dates
+              disable: normalizedBookedDates, // Disable booked dates (makes them unselectable)
+              dateFormat: "Y-m-d", // Set the date format
+              locale: {
+                firstDayOfWeek: 1, // Set Monday as the first day of the week
+              },
+              onDayCreate: function (dObj, dStr, fp, dayElem) {
+                const date = dayElem.dateObj;
+                const dateStr = fp.formatDate(date, "Y-m-d");
+
+                // Check if the current date is in the bookedDates array
+                if (normalizedBookedDates.includes(dateStr)) {
+                  // Apply custom style for booked dates (red background)
+                  dayElem.classList.add("booked-date");
+                } else {
+                  // Apply custom style for free dates (green background)
+                  dayElem.classList.add("free-date");
+                }
+
+                // Block Saturdays and Sundays and mark them red
+                const dayOfWeek = date.getDay(); // 0 = Sunday, 6 = Saturday
+                if (dayOfWeek === 0 || dayOfWeek === 6) {
+                  // Add red background and make them unselectable
+                  dayElem.classList.add("weekend-date"); // Custom class for styling
+                  dayElem.style.backgroundColor = "#ffcccc"; // Light red background
+                  dayElem.style.color = "#ff0000"; // Red text color
+                  dayElem.style.pointerEvents = "none"; // Disable interaction with weekends
+                }
+              },
+            });
+          } catch (error) {
+            console.error("Error loading availability:", error);
+          }
+        }
+
+        function openModal(doctor) {
+          doctorNameSpan.textContent = `Doctor: ${doctor.name} (${doctor.specialty})`;
+          doctorIdInput.value = doctor.id;
+          modal.style.display = "block";
+          const appointmentDateInput = document.getElementById(
+            "modal-appointment-date"
+          );
+          appointmentDateInput.value = "";
+
+          // Reset the placeholder text in case it was modified earlier
+          appointmentDateInput.placeholder = "Select a date";
+
+          // Load availability for the selected doctor
+          loadAvailability(doctor.id);
+        }
 
         if (!patientId) {
           const errorMessageDiv = document.getElementById("error-message");
