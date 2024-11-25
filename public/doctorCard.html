@@ -178,13 +178,12 @@
               const appointmentDiv = document.createElement("div");
               appointmentDiv.classList.add("appointment");
               appointmentDiv.innerHTML = `
-                        <p><strong>Patient ID:</strong> ${
-                          appointment.patientid
-                        }</p>
-                        <p><strong>Date:</strong> ${new Date(
-                          appointment.date
-                        ).toLocaleDateString()}</p>
-                    `;
+              <p><strong>Patient ID:</strong> ${appointment.patientid}</p>
+              <p><strong>Patient Name:</strong> ${appointment.patientname}</p>
+              <p><strong>Date:</strong> ${new Date(
+                appointment.date
+              ).toLocaleDateString()}</p>
+              `;
               appointmentsDiv.appendChild(appointmentDiv);
             });
           } else {

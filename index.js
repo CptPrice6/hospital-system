@@ -341,7 +341,22 @@ app.get("/api/doctors/:doctorId/appointments", async (req, res) => {
 
   try {
     const appointmentsQuery = await pool.query(
-      "SELECT patient_id AS patientId, date FROM appointments WHERE doctor_id = $1 ORDER BY date",
+      `
+      SELECT 
+        appointments.patient_id AS patientId, 
+        patients.name AS patientName, 
+        appointments.date 
+      FROM 
+        appointments
+      INNER JOIN 
+        patients 
+      ON 
+        appointments.patient_id = patients.id
+      WHERE 
+        appointments.doctor_id = $1
+      ORDER BY 
+        appointments.date
+      `,
       [doctorId]
     );
 
